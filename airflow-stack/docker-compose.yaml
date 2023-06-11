@@ -1,0 +1,69 @@
+version: '3'
+
+services:
+  postgres:
+    image: postgres:14
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=airflow
+      - POSTGRES_PORT=5432
+
+  redis:
+    image: redis:6
+    container_name: redis_cont
+    restart: always
+
+  airflow-init:
+    image: apache/airflow:2.6.1
+    command: db init
+    env_file:
+      - .env
+    volumes:
+      - ../data/dags:/opt/airflow/dags
+      - ../data/plugins:/opt/airflow/plugins
+
+  airflow-webserver:
+    image: apache/airflow:2.6.1
+    command: webserver
+    env_file:
+      - .env
+    ports:
+      - 8080:8080
+    volumes:
+      - ../data/dags:/opt/airflow/dags
+      - ../data/plugins:/opt/airflow/plugins
+
+  airflow-flower:
+    image: apache/airflow:2.6.1
+    depends_on:
+      - postgres
+    volumes:
+      - ../data/dags:/opt/airflow/dags
+      - ../data/plugins:/opt/airflow/plugins
+    env_file:
+      - .env
+    restart: always
+    command: celery flower
+    ports:
+      - 5555:5555
+
+  airflow-scheduler: 
+    image: apache/airflow:2.6.1
+    command: scheduler
+    env_file:
+      - .env
+    volumes:
+      - ../data/dags:/opt/airflow/dags
+      - ../data/plugins:/opt/airflow/plugins
+  
+  airflow-worker: 
+    image: apache/airflow:2.6.1
+    command: celery worker
+    env_file:
+      - .env
+    volumes:
+      - ../data/dags:/opt/airflow/dags
+      - ../data/plugins:/opt/airflow/plugins
+      - ../data/logs:/opt/airflow/logs
+

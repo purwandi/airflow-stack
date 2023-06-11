@@ -1,0 +1,43 @@
+version: '3'
+
+services:
+  elasticsearch:
+    image: elasticsearch:7.17.10
+    environment:
+      ES_JAVA_OPTS: "-Xmx1G -Xms1G"
+      discovery.type: single-node
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - 9200:9200
+
+  filebeat:
+    image: elastic/filebeat:7.17.10
+    volumes:
+      - ./data/logs:/data/logs
+      - ./filebeat.yml:/usr/share/filebeat/filebeat.yml
+    depends_on:
+      - elasticsearch
+      - logstash
+
+  logstash:
+    image: logstash:7.17.10
+    volumes:
+      - ./logstash-filestream.conf:/usr/share/logstash/pipeline/logstash-filestream.conf
+    environment:
+      LS_JAVA_OPTS: "-Xmx512m -Xms512m"
+    depends_on:
+      - elasticsearch
+
+  kibana: 
+    image: kibana:7.17.10
+    environment:
+      ES_JAVA_OPTS: "-Xmx1G -Xms1G"
+      ELASTICSEARCH_HOSTS: '["http://elasticsearch:9200"]'
+    ports:
+      - 5601:5601
+    depends_on:
+      - elasticsearch
+
